@@ -44,3 +44,7 @@ app.put("/games/:id", (req, res) => {
 app.listen(port, () => {
   console.log(`Example app listening on port ${port}`);
 });
+
+// window.fetch for making api calls from the client to the api
+
+// fetch("http://localhost:3000/games", {
