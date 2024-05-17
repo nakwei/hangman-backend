@@ -1,6 +1,10 @@
 const express = require("express");
+const cookieParser = require("cookie-parser");
+const crypto = require("crypto");
 const app = express();
-const port = 3000;
+const port = 3004;
+
+app.use(cookieParser());
 
 // GET  - Read a resource
 // POST  - Create a resource from what I"m giving you and respond with a new resource
@@ -12,15 +16,86 @@ const port = 3000;
 
 // RESTful
 
+const secret = "trailhead";
+const words = [
+  "car",
+  "tree",
+  "bush",
+  "hello",
+  "apple",
+  "stations",
+  "taxi",
+  "constellation",
+  "telescope",
+  "pants",
+  "eyeball",
+  "sandwich",
+  "shoes",
+  "market",
+  "phone",
+  "camera",
+  "chair",
+  "backyard",
+  "cat",
+  "sea",
+];
+
+const getRandomIndex = (arr) => {
+  return Math.round(Math.random() * arr.length);
+};
+
+function encrypt(text) {
+  const iv = crypto.randomBytes(16); // Initialization vector
+  const cipher = crypto.createCipheriv(
+    "aes-256-cbc",
+    Buffer.from(secret, "hex"),
+    iv
+  );
+  let encrypted = cipher.update(text, "utf8", "hex");
+  encrypted += cipher.final("hex");
+  return `${iv.toString("hex")}:${encrypted}`;
+}
+
+function decrypt(text) {
+  const [ivHex, encrypted] = text.split(":");
+  const iv = Buffer.from(ivHex, "hex");
+  const decipher = crypto.createDecipheriv(
+    "aes-256-cbc",
+    Buffer.from(secret, "hex"),
+    iv
+  );
+  let decrypted = decipher.update(encrypted, "hex", "utf8");
+  decrypted += decipher.final("utf8");
+  return decrypted;
+}
+
 app.post("/games", (req, res) => {
   // respond with a cookie that is an base64 encoded JSON string of the game
-  // Cookie { word: "adfasdfds", id: 1 } -> ADSFASDFASDF)FASDLFASD
-  return {
-    id: 1,
-    state: "playing",
-    word: [],
-    guesses: [],
-  };
+  // Cookie { word: "adfasdfds", guesses } -> ADSFASDFASDF)FASDLFASD
+
+  if (res.cookies["game"]) {
+    res.cookie("game", res.cookies["game"], {
+      maxAge: 60000, // Cookie expiration time in milliseconds
+      httpOnly: true, // Cookie is accessible only by the web server
+    });
+    const cookieValue = JSON.parse(decrypt(res.cookies["game"]));
+    return res.json({
+      word: cookieValue.word
+        .split("")
+        .map(() => (cookieValue.guesses.includes(letter) ? letter : null)),
+      guesses: cookieValue.guesses,
+    });
+  }
+
+  const word = words[getRandomIndex(words)];
+  const json = JSON.stringify({ word, guesses: [] });
+
+  res.cookie("game", encrypt(json), {
+    maxAge: 60000, // Cookie expiration time in milliseconds
+    httpOnly: true, // Cookie is accessible only by the web server
+  });
+
+  res.json({ word: word.split("").map(() => null), guesses: [] });
 });
 
 app.put("/games/:id", (req, res) => {
@@ -29,8 +104,6 @@ app.put("/games/:id", (req, res) => {
   // req.body: ["a"]
 
   return {
-    id: 1,
-    state: "playing",
     word: ["a", null, null, "a"],
     guesses: ["a"],
   };
@@ -48,3 +121,7 @@ app.listen(port, () => {
 // window.fetch for making api calls from the client to the api
 
 // fetch("http://localhost:3000/games", {
+
+// Add support for
+// - making guesses
+// - updating local
