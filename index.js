@@ -1,9 +1,11 @@
 const express = require("express");
 const cookieParser = require("cookie-parser");
 const crypto = require("crypto");
+const cors = require("cors"); 
 const app = express();
 const port = 3004;
 
+app.use(cors()); // Use the cors middleware
 app.use(cookieParser());
 
 // GET  - Read a resource
@@ -16,7 +18,9 @@ app.use(cookieParser());
 
 // RESTful
 
-const secret = "trailhead";
+// const secret = "trailhead";
+const secret = "6f5cd9af4b2873a509d2e167e6b52f3bc9f7e3ba2a478e916fe68d84a1d5f9ab";
+console.log(Buffer.from(secret, 'hex').length); 
 const words = [
   "car",
   "tree",
@@ -56,6 +60,12 @@ function encrypt(text) {
   return `${iv.toString("hex")}:${encrypted}`;
 }
 
+  const findWrongGuesses = (word, guessed) => {
+    return guessed.filter(
+      (char) => !word.includes(char.toLowerCase()));
+  };
+
+
 function decrypt(text) {
   const [ivHex, encrypted] = text.split(":");
   const iv = Buffer.from(ivHex, "hex");
@@ -69,16 +79,22 @@ function decrypt(text) {
   return decrypted;
 }
 
+
+
+
 app.post("/games", (req, res) => {
   // respond with a cookie that is an base64 encoded JSON string of the game
   // Cookie { word: "adfasdfds", guesses } -> ADSFASDFASDF)FASDLFASD
 
-  if (res.cookies["game"]) {
-    res.cookie("game", res.cookies["game"], {
-      maxAge: 60000, // Cookie expiration time in milliseconds
+  
+  if (req.cookies["game"]) { //changed from res to req
+    res.cookie("game", req.cookies["game"], { //changed from res to req
+
+      maxAge: 300000, // Cookie expiration time in milliseconds
       httpOnly: true, // Cookie is accessible only by the web server
     });
-    const cookieValue = JSON.parse(decrypt(res.cookies["game"]));
+
+    const cookieValue = JSON.parse(decrypt(req.cookies["game"])); //changed from res to req
     return res.json({
       word: cookieValue.word
         .split("")
@@ -91,12 +107,39 @@ app.post("/games", (req, res) => {
   const json = JSON.stringify({ word, guesses: [] });
 
   res.cookie("game", encrypt(json), {
-    maxAge: 60000, // Cookie expiration time in milliseconds
+    maxAge: 300000, // Cookie expiration time in milliseconds
     httpOnly: true, // Cookie is accessible only by the web server
   });
 
   res.json({ word: word.split("").map(() => null), guesses: [] });
 });
+
+// when user makes any guesses
+// using put, because we are updating the "game" rescource
+app.put("/games/userguess", (req, res) => {
+
+  const updatedGuesses = req.body.guesses;
+  const cookieValue = JSON.parse(decrypt(req.cookies["game"]))
+  const word = cookieValue.word
+
+  const wrongGuesses = findWrongGuesses(word, updatedGuesses)
+
+  const json = JSON.stringify({ word, updatedGuesses});
+
+
+  res.cookie("game", encrypt(json), {
+    maxAge: 300000,
+    httpOnly: true,
+  });
+
+  return res.json({
+    word: cookieValue.word
+      .split("")
+      .map(() => (updatedGuesses.includes(letter) ? letter : null)),
+    // guesses: updatedGuesses,
+    wrongGuesses: wrongGuesses
+    });
+  });
 
 app.put("/games/:id", (req, res) => {
   // req.cookies["game"] -> decrypt ->  JSON.parse -> { word: "", guesses: [] }
@@ -107,6 +150,8 @@ app.put("/games/:id", (req, res) => {
     word: ["a", null, null, "a"],
     guesses: ["a"],
   };
+
+  
 
   // accepts whole game
   // but you would add some validation here to make sure the user isn't chaning the work
