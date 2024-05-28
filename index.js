@@ -5,7 +5,8 @@ const cors = require("cors");
 const app = express();
 const port = 3004;
 
-app.use(cors()); // Use the cors middleware
+// app.use(cors()); // Use the cors middleware
+app.use(cors({ origin: 'http://localhost:5173' }));
 app.use(cookieParser());
 
 // GET  - Read a resource
