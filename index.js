@@ -99,6 +99,7 @@ app.post("/games", (req, res) => {
     });
 
     const cookieValue = JSON.parse(decrypt(req.cookies["game"])); //changed from res to req
+    console.log(cookieValue)
     return res.json({
       word: cookieValue.word
         .split("")
@@ -144,22 +145,21 @@ app.put("/games/guesses", (req, res) => {
     });
   });
 
-app.put("/games/:id", (req, res) => {
-  // req.cookies["game"] -> decrypt ->  JSON.parse -> { word: "", guesses: [] }
+app.put("/games/restart", (req, res) => {
+  const cookieValue = JSON.parse(decrypt(req.cookies["game"]))
+  const word = cookieValue.word
 
-  // req.body: ["a"]
+  const nextwordbank = [...words].filter((item) => item!==word)
 
-  return {
-    word: ["a", null, null, "a"],
-    guesses: ["a"],
-  };
+  const newword = nextwordbank[getRandomIndex(nextwordbank)];
+  const json = JSON.stringify({word: newword, guesses: [] });
 
-  
+  res.cookie("game", encrypt(json), {
+    maxAge: 300000, // Cookie expiration time in milliseconds
+    httpOnly: true, // Cookie is accessible only by the web server
+  });
 
-  // accepts whole game
-  // but you would add some validation here to make sure the user isn't chaning the work
-
-  // respond with a cookie that is an base64 encoded value of the word that they have
+  res.json({ word: newword.split("").map(() => null), guesses: [] });
 });
 
 app.listen(port, () => {
