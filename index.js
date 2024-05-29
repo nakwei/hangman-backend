@@ -9,6 +9,7 @@ const bodyparser = require("body-parser")
 // app.use(cors()); // Use the cors middleware
 app.use(cors({ origin: 'http://localhost:5173', credentials: true}));
 app.use(cookieParser());
+app.use(bodyparser.urlencoded({ extended: false }));
 app.use(bodyparser.json())
 
 // GET  - Read a resource
@@ -121,13 +122,13 @@ app.post("/games", (req, res) => {
 // using put, because we are updating the "game" rescource
 app.put("/games/guesses", (req, res) => {
   
-  console.log(req.body)
+
   const updatedGuesses = req.body
   const cookieValue = JSON.parse(decrypt(req.cookies["game"]))
   const word = cookieValue.word
 
 
-  const json = JSON.stringify({ word, updatedGuesses});
+  const json = JSON.stringify({ word, guesses: updatedGuesses});
 
 
   res.cookie("game", encrypt(json), {
@@ -139,7 +140,7 @@ app.put("/games/guesses", (req, res) => {
     word: cookieValue.word
       .split("")
       .map((letter) => (updatedGuesses.includes(letter) ? letter : null)),
-    guesses: updatedGuesses,
+    guesses: {updatedGuesses},
     });
   });
 
