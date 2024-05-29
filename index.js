@@ -3,11 +3,13 @@ const cookieParser = require("cookie-parser");
 const crypto = require("crypto");
 const cors = require("cors"); 
 const app = express();
-const port = 3004;
+const port = 3005;
+const bodyparser = require("body-parser")
 
 // app.use(cors()); // Use the cors middleware
-app.use(cors({ origin: 'http://localhost:5173' }));
+app.use(cors({ origin: 'http://localhost:5173', credentials: true}));
 app.use(cookieParser());
+app.use(bodyparser.json())
 
 // GET  - Read a resource
 // POST  - Create a resource from what I"m giving you and respond with a new resource
@@ -99,7 +101,7 @@ app.post("/games", (req, res) => {
     return res.json({
       word: cookieValue.word
         .split("")
-        .map(() => (cookieValue.guesses.includes(letter) ? letter : null)),
+        .map((letter) => (cookieValue.guesses.includes(letter) ? letter : null)),
       guesses: cookieValue.guesses,
     });
   }
@@ -117,13 +119,13 @@ app.post("/games", (req, res) => {
 
 // when user makes any guesses
 // using put, because we are updating the "game" rescource
-app.put("/games/userguess", (req, res) => {
-
-  const updatedGuesses = req.body.guesses;
+app.put("/games/guesses", (req, res) => {
+  
+  console.log(req.body)
+  const updatedGuesses = req.body
   const cookieValue = JSON.parse(decrypt(req.cookies["game"]))
   const word = cookieValue.word
 
-  const wrongGuesses = findWrongGuesses(word, updatedGuesses)
 
   const json = JSON.stringify({ word, updatedGuesses});
 
@@ -136,9 +138,8 @@ app.put("/games/userguess", (req, res) => {
   return res.json({
     word: cookieValue.word
       .split("")
-      .map(() => (updatedGuesses.includes(letter) ? letter : null)),
-    // guesses: updatedGuesses,
-    wrongGuesses: wrongGuesses
+      .map((letter) => (updatedGuesses.includes(letter) ? letter : null)),
+    guesses: updatedGuesses,
     });
   });
 
