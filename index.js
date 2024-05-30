@@ -141,7 +141,7 @@ app.put("/games/guesses", (req, res) => {
     word: cookieValue.word
       .split("")
       .map((letter) => (updatedGuesses.includes(letter) ? letter : null)),
-    guesses: {updatedGuesses},
+    guesses: updatedGuesses,
     });
   });
 
